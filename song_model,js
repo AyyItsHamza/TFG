@@ -1,12 +1,4 @@
-const mysql = require('mysql')
-
-const con = mysql.createConnection({
-    host: process.env.Server,
-    user: process.env.Username,
-    password:  process.env.Password,
-    database:  process.env.Name
-
-});
+const con = require("./conection")
 
 const Song = function(song){
     this.title = user.title;
@@ -28,19 +20,74 @@ Song.getall = result => {
     });
 }
 
-Song.getbytitle = (title, result) => {
+Song.getById = (id, result) => {
     con.connect(function(err) {
         if (err) throw err;
-        con.query('SELECT * FROM songs WHERE title = ?', title, (err,res) =>{
-            if (err){
-                console.log("error", err);
-                result(null,err);
-                return;
+        con.query(`SELECT * FROM songs WHERE id = ${id}`, (err, res) => {
+            if (err) {
+              console.log("error: ", err);
+              result(err, null);
+              return;
             }
-            result(null, res);
+        
+            if (res.length) {
+              console.log("found tutorial: ", res[0]);
+              result(null, res[0]);
+              return;
+            }
+        
+            // not found Tutorial with the id
+            result({ kind: "not_found" }, null);
+          });
+    }
+)};
+
+Song.updateById = (id, song, result) => {
+    con.connect(function(err) {
+        if (err) throw err;
+        sql.query(
+            "UPDATE songs SET title = ?, artist = ?, file_path = ? WHERE id = ?",
+            [song.title, song.artist, song.file_path, id],
+            (err, res) => {
+              if (err) {
+                console.log("error: ", err);
+                result(null, err);
+                return;
+              }
+        
+              if (res.affectedRows == 0) {
+                // not found with id
+                result({ kind: "not_found" }, null);
+                return;
+              }
+        
+              console.log("updated tutorial: ", { id: id, ...tutorial });
+              result(null, { id: id, ...tutorial });
+            });
         });
-    });
 }
 
-module.exports = Song;
 
+Song.deleteById = (id, result) => {
+    con.connect(function(err) {
+        if (err) throw err;
+        con.query("DELETE FROM songs WHERE id = ?", id, (err, res) => {
+            if (err) {
+              console.log("error: ", err);  
+              result(null, err);
+              return;
+            }
+        
+            if (res.affectedRows == 0) {
+              // not found song with the id
+              result({ kind: "not_found" }, null);
+              return;
+            }
+        
+            console.log("deleted tutorial with id: ", id);
+            result(null, res);
+          });
+        }
+)};
+
+module.exports = Song;

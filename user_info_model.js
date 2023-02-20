@@ -1,12 +1,4 @@
-const mysql = require('mysql')
-
-const con = mysql.createConnection({
-    host: process.env.Server,
-    user: process.env.Username,
-    password:  process.env.Password,
-    database:  process.env.Name
-
-});
+const con = require("./conection")
 
 const User = function(user){
     this.name = user.name;
@@ -28,10 +20,10 @@ User.create = (newUser, result) => {
     });
 };
 
-User.finduser = (username, result) => {
+User.findById = (id, result) => {
     con.connect(function(err) {
         if (err) throw err;
-        con.query('SELECT * FROM user_info WHERE username = ?', username, (err,res) =>{
+        con.query('SELECT * FROM user_info WHERE id = ?', id, (err,res) =>{
             if (err){
                 console.log("error", err);
                 result(null,err);

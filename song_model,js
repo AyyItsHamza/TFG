@@ -14,10 +14,19 @@ const Song = function(song){
     this.file_path = user.file_path;
 }
 
-
-
-
-
+Song.getall = result => {
+    con.connect(function(err) {
+        if (err) throw err;
+        con.query('SELECT * FROM songs ', newUser, (err,res) =>{
+            if (err){
+                console.log("error", err);
+                result(err,null);
+                return;
+            }
+            result(null, res);
+        });
+    });
+}
 
 module.exports = Song;
 

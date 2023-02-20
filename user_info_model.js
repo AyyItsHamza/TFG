@@ -22,6 +22,7 @@ User.create = (newUser, result) => {
             if (err){
                 console.log("error", err);
                 result(err,null);
+                return;
             }
         });
     });
@@ -58,7 +59,9 @@ User.update = (id, user, result) => {
                 result(null, res[0]);
                 return;
             }
-            result({kind: "not found"}, null);
+            if(res.affectRows == 0){
+                result({kind: "not found"}, null);
+            }
         });
     });
 };

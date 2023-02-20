@@ -1,0 +1,23 @@
+const mysql = require('mysql')
+
+const con = mysql.createConnection({
+    host: process.env.Server,
+    user: process.env.Username,
+    password:  process.env.Password,
+    database:  process.env.Name
+
+});
+
+const Song = function(song){
+    this.title = user.title;
+    this.artist = user.artist;
+    this.file_path = user.file_path;
+}
+
+
+
+
+
+
+module.exports = Song;
+

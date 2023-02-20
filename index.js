@@ -4,6 +4,8 @@ const bcrypt = require("bcryptjs");
 const cookieParser = require("cookie-parser");
 const jwt = require('jsonwebtoken');
 const User = require("./user_info_model")
+const Song = require("./song_model")
+const userplaylist = require("./user_playlist_model")
 const app = express()
 
 app.use(express.json());
@@ -86,12 +88,13 @@ app.post("/api/v1/login", async (request, response) => {
 app.post("/api/v1/register", async (request, response) => {
     const name = request.body.username;
     const lastname = request.body.lastname
+    const username= request.body.username
     var pass = request.body.password;
    
     var hashPassword = await bcrypt.hash(pass, 10);
     pass = hashPassword;
 
-    if(name === "" || pass === "" || lastname === ""){
+    if(name === "" || pass === "" || lastname === "" || username === ""){
         return response.status(406).json({msg:"Please fill in all fields"});
     } else {  // Check if username already exists
             

@@ -28,5 +28,19 @@ Song.getall = result => {
     });
 }
 
+Song.getbytitle = (title, result) => {
+    con.connect(function(err) {
+        if (err) throw err;
+        con.query('SELECT * FROM songs WHERE title = ?', title, (err,res) =>{
+            if (err){
+                console.log("error", err);
+                result(null,err);
+                return;
+            }
+            result(null, res);
+        });
+    });
+}
+
 module.exports = Song;
 

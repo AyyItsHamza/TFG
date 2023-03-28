@@ -3,11 +3,14 @@ const express = require("express");
 const mongoose = require("mongoose");
 const userModel = require("./user_model");
 const songs_model = require("./songs_model");
+const playlist_model = require("./playlist_model");
+
 const path = require("path");
 const jwt = require('jsonwebtoken');
 const bcrypt = require("bcryptjs");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
+const { response } = require('express');
 
 const app = express();
 app.use(express.json());
@@ -47,7 +50,7 @@ db.once("open", function () {
   console.log("Connected successfully");
 });
 
-app.post("/api/blitzchat/auth/login", async (request, response) => {
+app.post("/melomuse/api/v1/login", async (request, response) => {
     const userr = request.body.username;
     const pass = request.body.password;
 
@@ -79,13 +82,11 @@ app.post("/api/blitzchat/auth/login", async (request, response) => {
     }
 });
 
-app.post("/api/blitzchat/auth/register", async (request, response) => {
+app.post("/melomuse/api/v1/register", async (request, response) => {
     const userr = request.body.username;
     var pass = request.body.password;
     const nombre = request.body.nombre;
-
-    console.log(userr, pass, nombre);
-
+    
     var hashPassword = await bcrypt.hash(pass, 10);
     pass = hashPassword;
 
@@ -107,144 +108,135 @@ app.post("/api/blitzchat/auth/register", async (request, response) => {
   }
 });
 
-app.post("/api/blitzchat/add_post", verifyToken, async (request, response) => {
-  var posts = new postModel({
+app.post("/melomuse/api/v1/add_song", verifyToken, async (request, response) => {
+  var song = new songs_model({
       username: request.cookies.username,
-      text : request.body.text,
-      imagen : request.body.imagen,
-      audio : request.body.audio,
-      video : request.body.video
+      title : request.body.song_title,
+      artist : request.body.song_artist,
+      filepath : request.body.filepath,
   });
 
-  if(posts.text === "" ){
+  if(song.title === "" || song.artist === "" || song.filepath === "" ){
       return response.status(406).json({msg: "Please fill atleast the text field"});
   } else { 
-      posts.save(); 
-      return response.status(200).json({msg: "Post created successfully"});
+      song.save(); 
+      return response.status(200).json({msg: "Song Uploaded successfully"});
   } 
 });
 
-app.get("/api/blitzchat/get_post_id" , verifyToken, async (request, response) => {
-    const post = new postModel({
-        username: request.cookies.username,
-        text : request.body.text,
-        imagen : request.body.imagen,
-        audio : request.body.audio,
-        video : request.body.video
-    });
-    const postid = await postModel.findOne({_id: post});
-    return response.status(200).json({msg: postid});
-});
 
-app.get("/api/blitzchat/get_posts:username", verifyToken, async (request, response) => {
-    const username = request.body.username;
-    if (username === "") {
-        return response.status(406).json({msg: "Please fill in all fields"});
-    } else {
-            try {
-                const posts = await postModel.find({username: username});
-                if (posts.length === 0) {
-                    return response.status(400).json({msg: "No posts found for this user"});
-                } else {
-                    return response.status(200).json({msg: posts});
-                }
-            }catch (error) {
-                return response.status(400).json({msg: "Error"});
-            }   
-        }
-});
-
-app.get("/api/blitzchat/get_last_ten_posts:username", verifyToken, async (request, response) => {
-    const username = request.body.username;
-    if (username === "") {
-        return response.status(406).json({msg: "Please fill in all fields"});
-    } else {
-        try {
-            const posts = await postModel.find({username: username}).sort({_id: -1}).limit(10);
-            if (posts.length === 0) {
-                return response.status(400).json({msg: "No posts found for this user"});
-            } else {
-                return response.status(200).json({msg: posts});
-            }
-        } catch (error) {
-            return response.status(400).json({msg: "Error"});
-        }
+app.get('/melomuse/api/v1/songs',async, (request, response) => {
+    try{
+        const songs = await songs_model.find({});
+        return response.json(songs).status(200);
+    }catch{
+        res.status(500).json({message : "server error"})
     }
 });
 
-app.put("/api/blitzchat/update_post:id", verifyToken, async (request, response) => {
-  const id = request.body.id;
-  const text = request.body.text;
-  const imagen = request.body.imagen;
-  const audio = request.body.audio;
-  const video = request.body.video;
-  
-  if(id === ""){
-      return response.status(406).json({msg: "please enter id of the post"});
-  } else {
-      const post = await postModel.findById(id);
-      if(post === null){
-          return response.status(400).json({msg: "Post not found"});
-      } else {
-          post.text = text;
-          post.imagen = imagen;
-          post.audio = audio;
-          post.video = video;
-          post.save();
-          return response.status(200).json({msg: "Post updated successfully"});
+app.get('/melomuse/api/v1/songs/:id',verifyToken, async (req, res) => {
+    try {
+      const song = await songs_model.findById(req.params.id);
+      if (!song) {
+        return res.status(404).json({ message: 'Song not found' });
       }
-  }
-});
-
-app.put("/api/blitzchat/update/user",verifyToken,  async (request, response) => {
-    const nombre = request.body.nombre;
-    const username = request.cookies.username;
-    var password = request.body.password;
-    const hashPassword = await bcrypt.hash(password, 10);
-
-    if (nombre === "" || password === "") {
-        return response.status(406).json({msg: "Please fill in all fields"});
-    }
-    else {
-        const user = await userModel.find({username: username});
-        if(user === null){
-            return response.status(400).json({msg: "User not found"});
-        }
-        else { 
-            if (username === request.cookies.username){
-                const newuser = new userModel({
-                    nombre: nombre,
-                    username: username,
-                    password: hashPassword
-                });
-                newuser.save();
-                return response.status(200).json({msg: "User updated successfully"});
-            }   else {
-                return response.status(400).json({msg: "You are not authorized to update this user"});
-            }
-        }
+      res.json(song);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error' });
     }
 });
 
-app.delete("/api/blitzchat/delete_post:id", verifyToken, async (request, response) => {
-  const id = request.body.id;
-  if(id === ""){
-      return response.status(406).json({msg: "please enter id of the post"});
-  } else {
-    const post = await postModel.findById(id);
-    post.remove();
-    return response.status(200).json({msg: "Post deleted successfully"});
-  }
+app.get('/melomuse/api/v1/playlists',verifyToken, async (req, res) => {
+    try {
+      const playlists = await playlist_model.find({});
+      res.json(playlists);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error' });
+    }
+});
+
+router.get('/melomuse/api/v1/playlists/:id', verifyToken, async (req, res) => {
+    try {
+      const playlist = await playlist_model.findById(req.params.id);
+      if (!playlist) {
+        return res.status(404).json({ message: 'Playlist not found' });
+      }
+      res.json(playlist);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error' });
+    }
+});
+
+app.get('/api/v1/search', async (req, res) => {
+    try {
+      const { search } = req.query;
+      const songs = await songs_model.find({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { artist: { $regex: search, $options: 'i' } }
+        ]
+      });
+      res.json(songs);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error' });
+    }
+});
+
+app.delete('/melomuse/api/v1/delete/playlist/:id', async (req, res) => {
+    try {
+      const playlist = await playlist_model.findById(req.params.id);
+      if (!playlist) {
+        return res.status(404).json({ message: 'Playlist not found' });
+      }
+      await playlist.remove();
+      res.json({ message: 'Playlist deleted' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error' });
+    }
+});
+
+router.post('/melomuse/api/v1/logout', async (req, res) => {
+    try {
+      req.session.destroy();
+      res.json({ message: 'User logged out' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error' });
+    }
+});
+
+router.get('/melomuse/api/v1/user/:id', async (req, res) => {
+    try {
+      const user = await userModel.findById(req.params.id);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      res.json(user);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
+
+router.put('/api/v1/user/update/:id', async (req, res) => {
+    try {
+      const user = await userModel.findByIdAndUpdate(req.params.id, req.body, { new: true });
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      res.json(user);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error' });
+    }
 });
 
 app.get('/',(request, response) =>{
     return response.status(200).sendFile(path.resolve(__dirname,'../frontend/login.html'));
     console.log("hola");
 });
-
-app.get("/api/blitzchat/posts",verifyToken, async (request, response) => {
-  const posts = await postModel.find({});
-  return response.json(posts);
-});
-
-

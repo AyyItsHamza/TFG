@@ -18,7 +18,6 @@ const userSchema = new mongoose.Schema({
   playlists: [{
     name: {
       type: String,
-      required: true
     },
     songs: [{
       type: mongoose.Schema.Types.ObjectId,

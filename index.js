@@ -186,7 +186,7 @@ app.get('/api/v1/search', async (req, res) => {
     }
 });
 
-app.delete('/melomuse/api/v1/delete/playlist/:id', async (req, res) => {
+app.delete('/melomuse/api/v1/delete/playlist/:id',verifyToken, async (req, res) => {
     try {
       const playlist = await playlist_model.findById(req.params.id);
       if (!playlist) {
@@ -200,7 +200,7 @@ app.delete('/melomuse/api/v1/delete/playlist/:id', async (req, res) => {
     }
 });
 
-router.post('/melomuse/api/v1/logout', async (req, res) => {
+router.post('/melomuse/api/v1/logout', verifyToken, async (req, res) => {
     try {
       req.session.destroy();
       res.json({ message: 'User logged out' });
@@ -210,7 +210,7 @@ router.post('/melomuse/api/v1/logout', async (req, res) => {
     }
 });
 
-router.get('/melomuse/api/v1/user/:id', async (req, res) => {
+router.get('/melomuse/api/v1/user/:id', verifyToken, async (req, res) => {
     try {
       const user = await userModel.findById(req.params.id);
       if (!user) {
@@ -223,7 +223,7 @@ router.get('/melomuse/api/v1/user/:id', async (req, res) => {
     }
   });
 
-router.put('/api/v1/user/update/:id', async (req, res) => {
+router.put('/api/v1/user/update/:id', verifyToken, async (req, res) => {
     try {
       const user = await userModel.findByIdAndUpdate(req.params.id, req.body, { new: true });
       if (!user) {
@@ -237,6 +237,7 @@ router.put('/api/v1/user/update/:id', async (req, res) => {
 });
 
 app.get('/',(request, response) =>{
-    return response.status(200).sendFile(path.resolve(__dirname,'../frontend/login.html'));
+    //return response.status(200).sendFile(path.resolve(__dirname,'../frontend/login.html'));
+    return response.status(200).json({message: "MELOMUSE"})
     console.log("hola");
 });

@@ -67,40 +67,40 @@ db.once("open", function () {
   console.log("Connected successfully");
 });
 
-  app.post("/melomuse/api/v1/login", async (request, response) => {
-      const userr = request.body.username;
-      const pass = request.body.password;
+app.post("/melomuse/api/v1/login", async (request, response) => {
+    const userr = request.body.username;
+    const pass = request.body.password;
 
-      console.log(userr,pass)
+    console.log(userr,pass)
 
-      if(userr === "" || pass === ""){
-          response.status(406).json({msg:"Please fill in all fields"});
-      }  else { 
-          const user = await userModel.findOne({username: userr});
-          if(user === null){
-              return response.status(400).json({ msg:"User not found"});
-          } else {
-              if(bcrypt.compareSync(pass, user.password)){
-                  const token = request.cookies.access_token;
-                  if(token){
-                      const decoded = jwt.verify(token, process.env.SECRET);
-                      if(decoded.username === user.username){
-                          return response.status(400).json({ msg:"You are already logged in"});
-                      }
-                  } else {
-                      const token = jwt.sign({username: user.username, id: user._id}, process.env.SECRET, {expiresIn: "1h"});
-                      user.token = token;
-                      response.cookie ("access_token", token,  {maxAge: 3600000, httpOnly: true})
-                      response.cookie ("username", user.username,  {maxAge: 3600000, httpOnly: true})
-                      response.cookie ("userId", user._id, {maxAge: 3600000, httpOnly: true})
-                      return response.status(200).json({msg: "Login successful", jtw : token});
-                  }
-              } else {
-                  return response.status(400).json({msg:"Wrong password"});
-              }
-          }
-      }
-  });
+    if(userr === "" || pass === ""){
+        response.status(406).json({msg:"Please fill in all fields"});
+    }  else { 
+        const user = await userModel.findOne({username: userr});
+        if(user === null){
+            return response.status(400).json({ msg:"User not found"});
+        } else {
+            if(bcrypt.compareSync(pass, user.password)){
+                const token = request.cookies.access_token;
+                if(token){
+                    const decoded = jwt.verify(token, process.env.SECRET);
+                    if(decoded.username === user.username){
+                        return response.status(400).json({ msg:"You are already logged in"});
+                    }
+                } else {
+                    const token = jwt.sign({username: user.username, id: user._id}, process.env.SECRET, {expiresIn: "1h"});
+                    user.token = token;
+                    response.cookie ("access_token", token,  {maxAge: 3600000, httpOnly: true})
+                    response.cookie ("username", user.username,  {maxAge: 3600000, httpOnly: true})
+                    response.cookie ("userId", user._id, {maxAge: 3600000, httpOnly: true})
+                    return response.status(200).json({msg: "Login successful", jtw : token, username: user.username, userId : user._id});
+                }
+            } else {
+                return response.status(400).json({msg:"Wrong password"});
+            }
+        }
+    }
+});
 
 app.post("/melomuse/api/v1/register", async (request, response) => {
     const userr = request.body.username;
@@ -180,9 +180,7 @@ app.get('/melomuse/api/v1/songs/:songId/file', async (request, response) => {
   }
 });
 
-
-
-app.get('/melomuse/api/v1/user/:userId/playlists',verifyToken, async (req, res) => {
+app.get('/melomuse/api/v1/user/:userId/playlists', async (req, res) => {
   const userId = req.cookies.userId;
 
   try {

@@ -4,8 +4,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const userModel = require("./user_model");
 const songs_model = require("./songs_model");
-//const mega = require('megajs');
 const fs = require('fs');
+const multer = require('multer');
 
 const email = process.env.email;
 const password = process.env.password;
@@ -42,21 +42,17 @@ function verifyToken(req, res, next) {
     });
 }
 
-// Upload file to Mega
-const uploadFile = (file, callback) => {
-  const readStream = fs.createReadStream(file.path);
-  const megaFile = storage.upload({
-    name: file.originalname,
-    size: file.size,
-    attributes: mega.FileAttributeType.TypeFile,
-  }, readStream);
-  megaFile.on('error', callback);
-  megaFile.on('complete', () => {
-    // Get the link to the uploaded file
-    const link = `https://mega.nz/file/${megaFile.downloadId}#${megaFile.key}`;
-    callback(null, link);
-  });
-};
+// Configurar multer para manejar la subida de archivos
+const storage = multer.diskStorage({
+  destination: function(req, file, cb) {
+    cb(null, './public/songs');
+  },
+  filename: function(req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname);
+  }
+});
+
+const upload = multer({ storage });
 
 mongoose.connect(`mongodb+srv://${process.env.MONGO_USERNAME}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_DB}.mongodb.net/?retryWrites=true&w=majority`),{
   useNewUrlParser: true,
@@ -132,12 +128,20 @@ app.post("/melomuse/api/v1/register", async (request, response) => {
   }
 });
 
-app.post("/melomuse/api/v1/add_song", verifyToken, async (req, res) => {
+app.post('/melomuse/api/v1/add_song', upload.single('file_path'), async (req, res) => {
   try {
+    const { title, artist } = req.body;
+    const filePath = req.file.path;
+    
+    // Verificar que la propiedad "file_path" está presente en "req.file"
+    if (!filePath) {
+      return res.status(400).json({ message: 'La propiedad "file_path" no se encuentra en el objeto "req.file"' });
+    }
+
     const newSong = new songs_model({
-      title: req.body.title,
-      artist: req.body.artist,
-      file_path: req.body.filepath
+      title,
+      artist,
+      file_path: filePath
     });
     const savedSong = await newSong.save();
     res.json(savedSong);
@@ -157,20 +161,26 @@ app.get('/melomuse/api/v1/songs', async (request, response) => {
     }
 });
 
-app.get('/melomuse/api/v1/song/:id',verifyToken, async (req, res) => {
-
-    try {
-      const song = await songs_model.findById(req.params.id);
-      console.log(song)
-      if (!song) {
-        return res.status(404).json({ message: 'Song not found' });
-      }
-      res.json(song);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+app.get('/melomuse/api/v1/songs/:songId/file', async (request, response) => {
+  try {
+    const song = await songs_model.findById(request.params.songId);
+    if (!song) {
+      return response.status(404).json({ message: "Song not found" });
     }
+    if (!song.file_path) {
+      return response.status(400).json({ message: "Audio URL not found" });
+    }
+    const filePath = path.join(__dirname, song.file_path);
+
+    return response.sendFile(filePath);
+
+  } catch (error) {
+    console.error(error);
+    response.status(500).json({ message: "Server error" });
+  }
 });
+
+
 
 app.get('/melomuse/api/v1/user/:userId/playlists',verifyToken, async (req, res) => {
   const userId = req.cookies.userId;

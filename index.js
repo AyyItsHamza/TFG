@@ -181,7 +181,7 @@ app.get('/melomuse/api/v1/songs/:songId/file', async (request, response) => {
 });
 
 app.get('/melomuse/api/v1/user/:userId/playlists', async (req, res) => {
-  const userId = req.cookies.userId;
+  const userId = req.params.userId;
 
   try {
     // Busca el usuario en MongoDB por su ID
@@ -197,27 +197,31 @@ app.get('/melomuse/api/v1/user/:userId/playlists', async (req, res) => {
         name: playlist.name
       };
     });
-
     res.json(playlists);
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error del servidor' });
   }
 });
 
-app.get('/melomuse/api/v1/playlists/:id', verifyToken, async (req, res) => {
-  const playlistId = req.params.playlistId
+app.put('/melomuse/api/v1/playlists/:id/songs/:songId', async (req, res) => {
+  const playlistId = req.params.id;
+  const songId = req.params.songId;
 
-    try {
-      const playlist = await userModel.findById(playlistId);
-      if (!playlist) {
-        return res.status(404).json({ message: 'Playlist not found' });
-      }
-      res.json(playlist);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+  try {
+    const playlist = await userModel.findOneAndUpdate(
+      { 'playlists._id': playlistId, 'playlists.songs': { $ne: songId } },
+      { $addToSet: { 'playlists.$.songs': songId } }
+    );
+    if (!playlist) {
+      return res.status(404).json({ message: 'Playlist not found or song already in playlist' });
     }
+    res.json({ message: 'Song added to playlist' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 app.get('/api/v1/search', async (req, res) => {
@@ -236,7 +240,7 @@ app.get('/api/v1/search', async (req, res) => {
     }
 });
 
-app.delete('/melomuse/api/v1/delete/playlist/:id',verifyToken, async (req, res) => {
+app.delete('/melomuse/api/v1/delete/playlist/:id', async (req, res) => {
     try {
       const playlist = await playlist_model.findById(req.params.id);
       if (!playlist) {
@@ -250,7 +254,7 @@ app.delete('/melomuse/api/v1/delete/playlist/:id',verifyToken, async (req, res) 
     }
 });
 
-app.post('/melomuse/api/v1/logout', verifyToken, async (req, res) => {
+app.post('/melomuse/api/v1/logout', async (req, res) => {
     try {
       req.session.destroy();
       res.json({ message: 'User logged out' });
@@ -260,7 +264,7 @@ app.post('/melomuse/api/v1/logout', verifyToken, async (req, res) => {
     }
 });
 
-app.get('/melomuse/api/v1/user/:id', verifyToken, async (req, res) => {
+app.get('/melomuse/api/v1/user/:id',  async (req, res) => {
     try {
       const user = await userModel.findById(req.params.id);
       if (!user) {
@@ -273,7 +277,7 @@ app.get('/melomuse/api/v1/user/:id', verifyToken, async (req, res) => {
     }
   });
 
-app.put('/api/v1/user/update/:id', verifyToken, async (req, res) => {
+app.put('/api/v1/user/update/:id', async (req, res) => {
     try {
       const user = await userModel.findByIdAndUpdate(req.params.id, req.body, { new: true });
       if (!user) {

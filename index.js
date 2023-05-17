@@ -224,9 +224,44 @@ app.put('/melomuse/api/v1/playlists/:id/songs/:songId', async (req, res) => {
   }
 });
 
-app.get('/api/v1/search', async (req, res) => {
+//crear nuevas playlists
+app.post('/melomuse/api/v1/user/:userId/addPlaylist', async (req, res) => {
+  const userId = req.params.userId;
+  const { name } = req.body;
+
+  try {
+    // Busca el usuario en MongoDB por su ID
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    // Verifica si ya existe una playlist con el mismo nombre
+    const existingPlaylist = user.playlists.find(playlist => playlist.name === name);
+    if (existingPlaylist) {
+      return res.status(400).json({ message: 'Ya existe una playlist con el mismo nombre' });
+    }
+
+    // Crea una nueva playlist y la agrega al usuario
+    const playlist = {
+      name,
+      songs: []
+    };
+    user.playlists.push(playlist);
+    await user.save();
+
+    res.json(playlist);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error del servidor' });
+  }
+});
+
+
+app.get('/api/v1/search/:search', async (req, res) => {
     try {
-      const { search } = req.query;
+      const { search } = req.params;
       const songs = await songs_model.find({
         $or: [
           { name: { $regex: search, $options: 'i' } },

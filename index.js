@@ -211,11 +211,11 @@ app.put('/melomuse/api/v1/playlists/:id/songs/:songId', async (req, res) => {
 
   try {
     const playlist = await userModel.findOneAndUpdate(
-      { 'playlists._id': playlistId, 'playlists.songs': { $ne: songId } },
+      { 'playlists._id': playlistId },
       { $addToSet: { 'playlists.$.songs': songId } }
     );
     if (!playlist) {
-      return res.status(404).json({ message: 'Playlist not found or song already in playlist' });
+      return res.status(404).json({ message: 'Playlist not found' });
     }
     res.json({ message: 'Song added to playlist' });
   } catch (error) {
@@ -223,6 +223,7 @@ app.put('/melomuse/api/v1/playlists/:id/songs/:songId', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 //crear nuevas playlists
 app.post('/melomuse/api/v1/user/:userId/addPlaylist', async (req, res) => {
@@ -275,19 +276,24 @@ app.get('/api/v1/search/:search', async (req, res) => {
     }
 });
 
-app.delete('/melomuse/api/v1/delete/playlist/:id', async (req, res) => {
-    try {
-      const playlist = await playlist_model.findById(req.params.id);
-      if (!playlist) {
-        return res.status(404).json({ message: 'Playlist not found' });
-      }
-      await playlist.remove();
-      res.json({ message: 'Playlist deleted' });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+app.delete('/melomuse/api/v1/playlists/:id', async (req, res) => {
+  const playlistId = req.params.id;
+
+  try {
+    const playlist = await userModel.findOneAndUpdate(
+      { 'playlists._id': playlistId },
+      { $pull: { playlists: { _id: playlistId } } }
+    );
+    if (!playlist) {
+      return res.status(404).json({ message: 'Playlist not found' });
     }
+    res.json({ message: 'Playlist deleted' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
+
 
 app.post('/melomuse/api/v1/logout', async (req, res) => {
     try {

@@ -305,6 +305,36 @@ app.post('/melomuse/api/v1/logout', async (req, res) => {
     }
 });
 
+// Ruta para obtener las canciones de una playlist por su ID
+app.get('/api/showSongsPlaylist/:id', async (req, res) => {
+  try {
+    const playlistId = req.params.id;
+    const user = await userModel.findOne({ 'playlists._id': playlistId });
+
+    if (!user) {
+      return res.status(404).json({ error: 'Playlist not found' });
+    }
+
+    const playlist = user.playlists.find((p) => p._id.toString() === playlistId);
+
+    if (!playlist) {
+      return res.status(404).json({ error: 'Playlist not found' });
+    }
+
+    const songIds = playlist.songs;
+    const songs = await Promise.all(songIds.map(async (songId) => {
+      const song = await songs_model.findById(songId);
+      return song;
+    }));
+
+    res.json({ songs });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+
 app.get('/melomuse/api/v1/user/:id',  async (req, res) => {
     try {
       const user = await userModel.findById(req.params.id);

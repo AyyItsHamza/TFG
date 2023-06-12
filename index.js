@@ -151,7 +151,6 @@ app.post('/melomuse/api/v1/add_song', upload.single('file_path'), async (req, re
   }
 });
 
-//delete song solo Hamza (que  es un usuario Admin)
 app.post('/melomuse/api/v1/delete_song', async (req, res) => {
   try {
     const { userId, songId } = req.body;
@@ -167,14 +166,18 @@ app.post('/melomuse/api/v1/delete_song', async (req, res) => {
     if (!song) {
       return res.status(404).json({ message: 'Canción no encontrada' });
     }
+    // Eliminar la canción de la base de datos
+    song.deleteOne(); 
+
     // Eliminar el archivo físico asociado
     fs.unlink(song.file_path, (error) => {
       if (error) {
         console.error(error);
+        // Eliminar la canción de la base de datos
+        song.deleteOne();
         return res.status(500).json({ message: 'Error al eliminar el archivo' });
+        
       }
-      // Eliminar la canción de la base de datos
-      song.remove();
 
       res.json({ message: 'Canción eliminada exitosamente' });
     });
@@ -183,7 +186,6 @@ app.post('/melomuse/api/v1/delete_song', async (req, res) => {
     res.status(500).json({ message: 'Error del servidor' });
   }
 });
-
 
 app.get('/melomuse/api/v1/songs', async (request, response) => {
     try{
@@ -355,10 +357,19 @@ app.get('/api/showSongsPlaylist/:id', async (req, res) => {
     }
 
     const songIds = playlist.songs;
-    const songs = await Promise.all(songIds.map(async (songId) => {
+    const songs = [];
+
+    for (let i = 0; i < songIds.length; i++) {
+      const songId = songIds[i];
       const song = await songs_model.findById(songId);
-      return song;
-    }));
+
+      if (!song) {
+        // Si la canción no se encuentra, pasa a la siguiente canción
+        continue;
+      }
+
+      songs.push(song);
+    }
 
     res.json({ songs });
   } catch (err) {

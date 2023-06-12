@@ -151,6 +151,39 @@ app.post('/melomuse/api/v1/add_song', upload.single('file_path'), async (req, re
   }
 });
 
+//delete song solo Hamza (que  es un usuario Admin)
+app.post('/melomuse/api/v1/delete_song', async (req, res) => {
+  try {
+    const { userId, songId } = req.body;
+    // Verificar si el usuario es "Hamza"
+    if (userId !== 'Hamza') {
+      return res.status(401).json({ message: 'Acceso no autorizado' });
+    }
+    if (!songId) {
+      return res.status(400).json({ message: 'Se requiere un ID de canción' });
+    }
+    const song = await songs_model.findById(songId);
+    // Verificar si la canción existe
+    if (!song) {
+      return res.status(404).json({ message: 'Canción no encontrada' });
+    }
+    // Eliminar el archivo físico asociado
+    fs.unlink(song.file_path, (error) => {
+      if (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Error al eliminar el archivo' });
+      }
+      // Eliminar la canción de la base de datos
+      song.remove();
+
+      res.json({ message: 'Canción eliminada exitosamente' });
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error del servidor' });
+  }
+});
+
 
 app.get('/melomuse/api/v1/songs', async (request, response) => {
     try{

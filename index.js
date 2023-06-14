@@ -240,6 +240,7 @@ app.get('/melomuse/api/v1/user/:userId/playlists', async (req, res) => {
   }
 });
 
+//Agregar cancion a la playlist
 app.put('/melomuse/api/v1/playlists/:id/songs/:songId', async (req, res) => {
   const playlistId = req.params.id;
   const songId = req.params.songId;
@@ -259,6 +260,25 @@ app.put('/melomuse/api/v1/playlists/:id/songs/:songId', async (req, res) => {
   }
 });
 
+//Borrar Cancion de la playlsit 
+app.delete('/melomuse/api/v1/playlists/:id/songs/:songId', async (req, res) => {
+  const playlistId = req.params.id;
+  const songId = req.params.songId;
+
+  try {
+    const playlist = await userModel.findOneAndUpdate(
+      { 'playlists._id': playlistId },
+      { $pull: { 'playlists.$.songs': songId } }
+    );
+    if (!playlist) {
+      return res.status(404).json({ message: 'Playlist not found' });
+    }
+    res.json({ message: 'Song removed from playlist' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 //crear nuevas playlists
 app.post('/melomuse/api/v1/user/:userId/addPlaylist', async (req, res) => {

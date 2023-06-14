@@ -320,7 +320,7 @@ app.get('/api/v1/search/:search', async (req, res) => {
       const { search } = req.params;
       const songs = await songs_model.find({
         $or: [
-          { name: { $regex: search, $options: 'i' } },
+          { title: { $regex: search, $options: 'i' } },
           { artist: { $regex: search, $options: 'i' } }
         ]
       });
